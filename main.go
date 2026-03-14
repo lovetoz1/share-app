@@ -6,32 +6,27 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 )
 
+// Handles file uploads
 func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
-	// 1. Only allow POST requests
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// 2. Limit the upload size (e.g., 10 MB limit)
-	r.ParseMultipartForm(10 << 20)
-
-	// 3. Retrieve the file from form data
+	r.ParseMultipartForm(10 << 20) // 10MB limit for now
 	file, handler, err := r.FormFile("myFile")
 	if err != nil {
-		fmt.Println("Error Retrieving the File:", err)
 		http.Error(w, "Error retrieving file", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
 
-	// 4. Create an "uploads" directory if it doesn't exist
 	os.MkdirAll("./uploads", os.ModePerm)
-
-	// 5. Create a new file in the uploads directory
 	dstPath := filepath.Join("uploads", handler.Filename)
+	
 	dst, err := os.Create(dstPath)
 	if err != nil {
 		http.Error(w, "Error saving file", http.StatusInternalServerError)
@@ -39,27 +34,51 @@ func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer dst.Close()
 
-	// 6. Copy the uploaded file data to the new file
-	if _, err := io.Copy(dst, file); err != nil {
-		http.Error(w, "Error saving file", http.StatusInternalServerError)
+	io.Copy(dst, file)
+	
+	fmt.Fprintf(w, "/files/%s", handler.Filename)
+}
+
+// Handles text/link sharing
+func shareTextHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// 7. Return the download URL to the frontend
-	fileURL := fmt.Sprintf("/files/%s", handler.Filename)
-	fmt.Fprintf(w, fileURL)
+	r.ParseForm()
+	textContent := r.FormValue("textContent")
+
+	if textContent == "" {
+		http.Error(w, "Text is empty", http.StatusBadRequest)
+		return
+	}
+
+	os.MkdirAll("./uploads", os.ModePerm)
+	
+	// Create a unique filename for the text snippet
+	fileName := fmt.Sprintf("snippet_%d.txt", time.Now().Unix())
+	dstPath := filepath.Join("uploads", fileName)
+
+	// Save the text to the file
+	err := os.WriteFile(dstPath, []byte(textContent), 0644)
+	if err != nil {
+		http.Error(w, "Error saving text", http.StatusInternalServerError)
+		return
+	}
+
+	// Return the link to the text file
+	fmt.Fprintf(w, "/files/%s", fileName)
 }
 
 func main() {
-	// Serve the frontend HTML
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "index.html")
 	})
 
-	// Handle the file upload requests
 	http.HandleFunc("/upload", uploadFileHandler)
-
-	// Serve the uploaded files so they can be downloaded
+	http.HandleFunc("/share-text", shareTextHandler)
+	
 	http.Handle("/files/", http.StripPrefix("/files/", http.FileServer(http.Dir("./uploads"))))
 
 	fmt.Println("Server started on http://localhost:8080")
