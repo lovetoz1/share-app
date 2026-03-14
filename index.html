@@ -3,20 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Go File Share</title>
+    <title>Share App: Files & Text</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; max-width: 500px; margin: auto; }
-        .upload-box { border: 2px dashed #ccc; padding: 20px; text-align: center; border-radius: 8px; }
-        #link-container { margin-top: 20px; display: none; background: #eef; padding: 10px; border-radius: 4px; }
+        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; }
+        .section { border: 2px dashed #ccc; padding: 20px; text-align: center; border-radius: 8px; margin-bottom: 20px; }
+        textarea { width: 100%; height: 100px; margin-bottom: 10px; padding: 8px; box-sizing: border-box; }
+        #link-container { display: none; background: #eef; padding: 15px; border-radius: 4px; text-align: center; }
+        #downloadLink { font-weight: bold; color: #0056b3; word-break: break-all; }
     </style>
 </head>
 <body>
-    <h2>Share a File</h2>
+    <h2>Share Anything</h2>
     
-    <div class="upload-box">
+    <div class="section">
+        <h3>Share Text or Links</h3>
+        <textarea id="textInput" placeholder="Paste your text, code, or links here..."></textarea>
+        <button onclick="shareText()">Share Text</button>
+    </div>
+
+    <div class="section">
+        <h3>Share a File</h3>
         <input type="file" id="fileInput" />
         <br><br>
-        <button onclick="uploadFile()">Upload & Share</button>
+        <button onclick="uploadFile()">Upload File</button>
     </div>
 
     <div id="link-container">
@@ -25,6 +34,41 @@
     </div>
 
     <script>
+        // Function to handle the generated link
+        function displayLink(fileUrl) {
+            const linkContainer = document.getElementById('link-container');
+            const downloadLink = document.getElementById('downloadLink');
+            
+            downloadLink.href = fileUrl;
+            downloadLink.textContent = window.location.origin + fileUrl;
+            linkContainer.style.display = 'block';
+        }
+
+        // Share Text Logic
+        async function shareText() {
+            const textContent = document.getElementById('textInput').value;
+            if (!textContent.trim()) {
+                alert("Please enter some text first.");
+                return;
+            }
+
+            const formData = new URLSearchParams();
+            formData.append("textContent", textContent);
+
+            const response = await fetch('/share-text', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                const fileUrl = await response.text();
+                displayLink(fileUrl);
+            } else {
+                alert("Failed to share text.");
+            }
+        }
+
+        // Upload File Logic
         async function uploadFile() {
             const fileInput = document.getElementById('fileInput');
             const file = fileInput.files[0];
@@ -34,34 +78,19 @@
                 return;
             }
 
-            // Create FormData to send the file
             const formData = new FormData();
             formData.append("myFile", file);
 
-            try {
-                // Send the POST request to the Go backend
-                const response = await fetch('/upload', {
-                    method: 'POST',
-                    body: formData
-                });
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
 
-                if (response.ok) {
-                    // Get the file URL returned by Go
-                    const fileUrl = await response.text();
-                    
-                    // Show the link to the user
-                    const linkContainer = document.getElementById('link-container');
-                    const downloadLink = document.getElementById('downloadLink');
-                    
-                    downloadLink.href = fileUrl;
-                    downloadLink.textContent = window.location.origin + fileUrl;
-                    linkContainer.style.display = 'block';
-                } else {
-                    alert("Upload failed. Server returned an error.");
-                }
-            } catch (error) {
-                console.error("Error:", error);
-                alert("Network error occurred during upload.");
+            if (response.ok) {
+                const fileUrl = await response.text();
+                displayLink(fileUrl);
+            } else {
+                alert("Failed to upload file.");
             }
         }
     </script>
