@@ -1,98 +1,595 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Share App: Files & Text</title>
+    <title>QuickShare | Share Anything Instantly</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; }
-        .section { border: 2px dashed #ccc; padding: 20px; text-align: center; border-radius: 8px; margin-bottom: 20px; }
-        textarea { width: 100%; height: 100px; margin-bottom: 10px; padding: 8px; box-sizing: border-box; }
-        #link-container { display: none; background: #eef; padding: 15px; border-radius: 4px; text-align: center; }
-        #downloadLink { font-weight: bold; color: #0056b3; word-break: break-all; }
+        :root {
+            --primary: #000000;
+            --primary-hover: #222222;
+            --bg: #ffffff;
+            --card-bg: #ffffff;
+            --border: #dddddd;
+            --text-main: #000000;
+            --text-dim: #666666;
+            --accent: #f4f4f4;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            padding: 1.5rem;
+        }
+
+        /* Modern Classic Card */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 2.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            text-align: center;
+            letter-spacing: -0.01em;
+            color: var(--primary);
+        }
+
+        p.subtitle {
+            color: var(--text-dim);
+            text-align: center;
+            margin-bottom: 2.5rem;
+            font-size: 0.9rem;
+            font-weight: 400;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 2rem;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-dim);
+            font-weight: 500;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        /* Panels */
+        .panel {
+            display: none;
+            animation: fadeIn 0.3s ease forwards;
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Upload Zone */
+        .drop-zone {
+            height: 160px;
+            border: 1px dashed var(--border);
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 1.5rem;
+            background: var(--accent);
+        }
+
+        .drop-zone:hover {
+            border-color: var(--primary);
+            background: #ffffff;
+        }
+
+        .drop-zone p {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+
+        textarea {
+            width: 100%;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 1rem;
+            color: var(--text-main);
+            resize: none;
+            height: 100px;
+            margin-bottom: 1rem;
+            outline: none;
+            font-size: 0.95rem;
+        }
+
+        textarea:focus {
+            border-color: var(--primary);
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-main);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .code-input {
+            width: 100%;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 1rem;
+            font-size: 1.8rem;
+            letter-spacing: 0.5rem;
+            text-align: center;
+            color: var(--text-main);
+            outline: none;
+        }
+
+        .code-input:focus {
+            border-color: var(--primary);
+        }
+
+        button.btn-primary {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.9rem;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        button.btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        button.btn-primary:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+
+        /* Result Display */
+        #result {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            text-align: center;
+            display: none;
+            background: var(--accent);
+        }
+
+        #result h3 {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 1rem;
+        }
+
+        #code-display {
+            font-size: 2.8rem;
+            font-weight: 700;
+            letter-spacing: 0.4rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+
+        .copy-hint {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+
+        #retrieved-item {
+            display: none;
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: var(--accent);
+            border: 1px solid var(--border);
+            text-align: left;
+            position: relative;
+        }
+
+        .file-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin-top: 1rem;
+            background: #eeeeee;
+            border-radius: 2px;
+            height: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: var(--primary);
+            transition: width 0.1s linear;
+        }
+
+        .progress-text {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            text-align: right;
+            margin-top: 0.4rem;
+        }
+
+        /* Loading Spinner */
+        .loader {
+            display: none;
+            border: 2px solid #eeeeee;
+            border-top: 2px solid var(--primary);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 0.8s linear infinite;
+            margin: 1.5rem auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Copy Button Icon */
+        .copy-btn-inline {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: white;
+            border: 1px solid var(--border);
+            padding: 0.4rem 0.6rem;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.7rem;
+            color: var(--text-main);
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .copy-btn-inline:hover {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
     </style>
 </head>
+
 <body>
-    <h2>Share Anything</h2>
-    
-    <div class="section">
-        <h3>Share Text or Links</h3>
-        <textarea id="textInput" placeholder="Paste your text, code, or links here..."></textarea>
-        <button onclick="shareText()">Share Text</button>
-    </div>
+    <div class="container">
+        <div class="card">
+            <h1>QuickShare</h1>
+            <p class="subtitle">Share files and text securely with a code.</p>
 
-    <div class="section">
-        <h3>Share a File</h3>
-        <input type="file" id="fileInput" />
-        <br><br>
-        <button onclick="uploadFile()">Upload File</button>
-    </div>
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('share')">Send</div>
+                <div class="tab" onclick="switchTab('receive')">Receive</div>
+            </div>
 
-    <div id="link-container">
-        <p><strong>Success! Share this link:</strong></p>
-        <a id="downloadLink" href="#" target="_blank">Download Link</a>
+            <!-- Share Panel -->
+            <div id="share-panel" class="panel active">
+                <label for="file-upload" class="drop-zone" id="drop-zone">
+                    <span class="file-icon">📁</span>
+                    <p id="drop-text">Drag & drop files or click to browse</p>
+                    <input type="file" id="file-upload">
+                </label>
+
+                <div class="input-group">
+                    <textarea id="text-input" placeholder="Or paste text/links here..."></textarea>
+                </div>
+
+                <button class="btn-primary" id="share-btn" onclick="handleShare()">Generate Code</button>
+
+                <div id="progress-area" style="display: none; margin-top: 1.5rem;">
+                    <div class="progress-container">
+                        <div class="progress-bar" id="progress-bar"></div>
+                    </div>
+                    <p class="progress-text" id="progress-text">Uploading... 0%</p>
+                </div>
+
+                <div id="result">
+                    <h3>Your Share Code</h3>
+                    <div id="code-display">000000</div>
+                    <p class="copy-hint">Copy this code and share it!</p>
+                </div>
+            </div>
+
+            <!-- Receive Panel -->
+            <div id="receive-panel" class="panel">
+                <div class="input-group">
+                    <label>Enter 6-Digit Code</label>
+                    <input type="text" class="code-input" id="retrieve-code" maxlength="6" placeholder="000000">
+                </div>
+                <button class="btn-primary" onclick="handleRetrieve()">Retrieve Content</button>
+                <div class="loader" id="retrieve-loader"></div>
+
+                <div id="retrieved-item">
+                    <button id="copy-btn" class="copy-btn-inline" style="display: none;" onclick="copyRetrievedText()">
+                        <span>Copy</span>
+                    </button>
+                    <span class="file-icon" id="item-icon">📄</span>
+                    <p id="item-info" style="margin-bottom: 1.5rem;"></p>
+                    <a id="download-btn" href="#" class="btn-primary" target="_blank"
+                        style="text-decoration: none; width: auto; display: inline-block; padding: 0.6rem 1.5rem;">Download</a>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        // Function to handle the generated link
-        function displayLink(fileUrl) {
-            const linkContainer = document.getElementById('link-container');
-            const downloadLink = document.getElementById('downloadLink');
-            
-            downloadLink.href = fileUrl;
-            downloadLink.textContent = window.location.origin + fileUrl;
-            linkContainer.style.display = 'block';
-        }
+        // Tab Switching
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
 
-        // Share Text Logic
-        async function shareText() {
-            const textContent = document.getElementById('textInput').value;
-            if (!textContent.trim()) {
-                alert("Please enter some text first.");
-                return;
-            }
-
-            const formData = new URLSearchParams();
-            formData.append("textContent", textContent);
-
-            const response = await fetch('/share-text', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (response.ok) {
-                const fileUrl = await response.text();
-                displayLink(fileUrl);
+            if (tab === 'share') {
+                document.querySelector('.tab:nth-child(1)').classList.add('active');
+                document.getElementById('share-panel').classList.add('active');
             } else {
-                alert("Failed to share text.");
+                document.querySelector('.tab:nth-child(2)').classList.add('active');
+                document.getElementById('receive-panel').classList.add('active');
             }
         }
 
-        // Upload File Logic
-        async function uploadFile() {
-            const fileInput = document.getElementById('fileInput');
+        // Drag and Drop
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-upload');
+        const dropText = document.getElementById('drop-text');
+        const textInput = document.getElementById('text-input');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            fileInput.files = files;
+            if (files.length > 0) {
+                dropText.innerText = `Selected: ${files[0].name}`;
+                textInput.value = ''; // Clear text if file is dropped
+            }
+        }, false);
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                dropText.innerText = `Selected: ${fileInput.files[0].name}`;
+                textInput.value = ''; // Clear text if file is selected
+            }
+        });
+
+        textInput.addEventListener('input', () => {
+            if (textInput.value.trim().length > 0) {
+                fileInput.value = ''; // Clear file if text is entered
+                dropText.innerText = 'Drag & drop files or click to browse';
+            }
+        });
+
+        // Backend Integration
+        // Backend Integration
+        function handleShare() {
+            const textContent = textInput.value;
             const file = fileInput.files[0];
-            
-            if (!file) {
-                alert("Please select a file first.");
+            const progressArea = document.getElementById('progress-area');
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            const resultDiv = document.getElementById('result');
+            const codeDisplay = document.getElementById('code-display');
+            const shareBtn = document.getElementById('share-btn');
+
+            if (!textContent.trim() && !file) {
+                alert("Please add some text or select a file first.");
                 return;
             }
 
-            const formData = new FormData();
-            formData.append("myFile", file);
+            progressArea.style.display = 'block';
+            progressBar.style.width = '0%';
+            progressText.innerText = 'Preparing...';
+            resultDiv.style.display = 'none';
+            shareBtn.disabled = true;
 
-            const response = await fetch('/upload', {
-                method: 'POST',
-                body: formData
+            const xhr = new XMLHttpRequest();
+
+            // Progress tracking
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    progressBar.style.width = percent + '%';
+                    progressText.innerText = `Uploading... ${percent}%`;
+                }
             });
 
-            if (response.ok) {
-                const fileUrl = await response.text();
-                displayLink(fileUrl);
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === XMLHttpRequest.DONE) {
+                    shareBtn.disabled = false;
+                    progressArea.style.display = 'none';
+
+                    if (xhr.status === 200) {
+                        try {
+                            const data = JSON.parse(xhr.responseText);
+                            codeDisplay.innerText = data.code;
+                            resultDiv.style.display = 'block';
+
+                            // Clear inputs
+                            fileInput.value = '';
+                            textInput.value = '';
+                            dropText.innerText = 'Drag & drop files or click to browse';
+                        } catch (e) {
+                            console.error("Error parsing response:", e);
+                            alert("Invalid server response.");
+                        }
+                    } else {
+                        alert("Sharing failed. Please try again.");
+                    }
+                }
+            };
+
+            if (file) {
+                const formData = new FormData();
+                formData.append("myFile", file);
+                xhr.open('POST', '/upload', true);
+                xhr.send(formData);
             } else {
-                alert("Failed to upload file.");
+                const formData = new URLSearchParams();
+                formData.append("textContent", textContent);
+                xhr.open('POST', '/share-text', true);
+                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                xhr.send(formData.toString());
+            }
+        }
+
+        let lastRetrievedText = '';
+
+        function copyRetrievedText() {
+            if (!lastRetrievedText) return;
+            navigator.clipboard.writeText(lastRetrievedText).then(() => {
+                const copyBtn = document.getElementById('copy-btn');
+                const span = copyBtn.querySelector('span');
+                const originalText = span.innerText;
+                span.innerText = 'Copied!';
+                setTimeout(() => { span.innerText = originalText; }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+                alert("Failed to copy text.");
+            });
+        }
+
+        async function handleRetrieve() {
+            const code = document.getElementById('retrieve-code').value;
+            const loader = document.getElementById('retrieve-loader');
+            const retrievedDiv = document.getElementById('retrieved-item');
+            const itemInfo = document.getElementById('item-info');
+            const downloadBtn = document.getElementById('download-btn');
+            const itemIcon = document.getElementById('item-icon');
+            const copyBtn = document.getElementById('copy-btn');
+
+            if (code.length !== 6) {
+                alert("Please enter a valid 6-digit code.");
+                return;
+            }
+
+            loader.style.display = 'block';
+            retrievedDiv.style.display = 'none';
+            copyBtn.style.display = 'none';
+            itemInfo.innerText = '';
+            lastRetrievedText = '';
+
+            try {
+                const response = await fetch(`/retrieve?code=${code}`);
+                if (response.ok) {
+                    const data = await response.json();
+
+                    if (data.type === 'text') {
+                        const txtResp = await fetch(data.fileUrl);
+                        const text = await txtResp.text();
+                        lastRetrievedText = text;
+                        itemInfo.innerText = text.length > 500 ? text.substring(0, 500) + '...' : text;
+                        itemIcon.innerText = '📄';
+                        copyBtn.style.display = 'flex';
+                    } else {
+                        itemInfo.innerText = `File: ${data.fileName}`;
+                        itemIcon.innerText = '📦';
+                        copyBtn.style.display = 'none';
+                    }
+
+                    downloadBtn.href = data.fileUrl;
+                    downloadBtn.innerText = data.type === 'text' ? 'Open Full Text' : 'Download File';
+                    retrievedDiv.style.display = 'block';
+                } else {
+                    alert("Code not found or expired.");
+                }
+            } catch (e) {
+                alert("Error retrieving content.");
+            } finally {
+                loader.style.display = 'none';
             }
         }
     </script>
 </body>
+
 </html>
