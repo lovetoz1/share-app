@@ -1,72 +1,67 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
-	"log"
-	"math/rand"
+	"io"
 	"net/http"
 	"os"
-	"time"
-
-	_ "github.com/lib/pq"
+	"path/filepath"
 )
 
-var db *sql.DB
+func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
+	// 1. Only allow POST requests
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// 2. Limit the upload size (e.g., 10 MB limit)
+	r.ParseMultipartForm(10 << 20)
+
+	// 3. Retrieve the file from form data
+	file, handler, err := r.FormFile("myFile")
+	if err != nil {
+		fmt.Println("Error Retrieving the File:", err)
+		http.Error(w, "Error retrieving file", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	// 4. Create an "uploads" directory if it doesn't exist
+	os.MkdirAll("./uploads", os.ModePerm)
+
+	// 5. Create a new file in the uploads directory
+	dstPath := filepath.Join("uploads", handler.Filename)
+	dst, err := os.Create(dstPath)
+	if err != nil {
+		http.Error(w, "Error saving file", http.StatusInternalServerError)
+		return
+	}
+	defer dst.Close()
+
+	// 6. Copy the uploaded file data to the new file
+	if _, err := io.Copy(dst, file); err != nil {
+		http.Error(w, "Error saving file", http.StatusInternalServerError)
+		return
+	}
+
+	// 7. Return the download URL to the frontend
+	fileURL := fmt.Sprintf("/files/%s", handler.Filename)
+	fmt.Fprintf(w, fileURL)
+}
 
 func main() {
-	// Connect to PostgreSQL via Coolify Environment Variable
-	dbURL := os.Getenv("DATABASE_URL")
-	var err error
-	db, err = sql.Open("postgres", dbURL)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Auto-create the table if it doesn't exist
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS shares (
-		code VARCHAR(6) PRIMARY KEY,
-		content TEXT NOT NULL
-	)`)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Serve the UI
+	// Serve the frontend HTML
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "index.html")
 	})
 
-	// Handle saving data and generating code
-	http.HandleFunc("/share", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" { return }
-		content := r.FormValue("content")
-		
-		// Generate random 6-digit code
-		rand.Seed(time.Now().UnixNano())
-		code := fmt.Sprintf("%06d", rand.Intn(1000000))
+	// Handle the file upload requests
+	http.HandleFunc("/upload", uploadFileHandler)
 
-		// Save to DB
-		_, err := db.Exec("INSERT INTO shares (code, content) VALUES ($1, $2)", code, content)
-		if err != nil {
-			http.Error(w, "Database error", 500)
-			return
-		}
-		fmt.Fprintf(w, "<html><body><h2 style='text-align:center; font-family:sans-serif; margin-top:50px;'>Success! Your code is: <b style='color:green; font-size: 30px;'>%s</b></h2></body></html>", code)
-	})
+	// Serve the uploaded files so they can be downloaded
+	http.Handle("/files/", http.StripPrefix("/files/", http.FileServer(http.Dir("./uploads"))))
 
-	// Handle retrieving data
-	http.HandleFunc("/get", func(w http.ResponseWriter, r *http.Request) {
-		code := r.URL.Query().Get("code")
-		var content string
-		err := db.QueryRow("SELECT content FROM shares WHERE code = $1", code).Scan(&content)
-		if err != nil {
-			fmt.Fprintf(w, "<html><body><h2 style='text-align:center; font-family:sans-serif; color:red; margin-top:50px;'>Invalid or expired code.</h2></body></html>")
-			return
-		}
-		fmt.Fprintf(w, "<html><body><h2 style='text-align:center; font-family:sans-serif; margin-top:50px;'>Message: <br><br> <span style='font-weight:normal;'>%s</span></h2></body></html>", content)
-	})
-
-	fmt.Println("Server is running on port 8080...")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	fmt.Println("Server started on http://localhost:8080")
+	http.ListenAndServe(":8080", nil)
 }
